@@ -5,8 +5,8 @@ import energy
 
 
 #Input Parameters
-m           = 100
-n           = 100
+m           = 10
+n           = 10
 dX          = 1/m
 dY          = 1/n
 Pr          = 1
@@ -38,10 +38,11 @@ def prog():
     vort_residue = []
     strm_residue = []
     temp_residue = []
+    vort_o      = vorticity.vort_init(vort_o,m,n)
+    strm_o      = stream.strm_init(strm_o,m,n)
+    temp_o      = energy.energy_init(temp_o,m,n,dX)
+
     while (status != True):
-        vort_o      = vorticity.vort_init(vort_o,m,n)
-        strm_o      = stream.strm_init(strm_o,m,n)
-        temp_o      = energy.energy_init(temp_o,m,n,dX)
 
 
         vort_o      = vorticity.vort_bound(vort_o,strm_o,m,n,dX,dY)
@@ -73,13 +74,19 @@ def prog():
         residue.append(temp_residue)
         rel_residue = np.std(residue)
 
-        if rel_residue <= convergence:
+        if rel_residue <= convergence or i > 500:
             status = True
 
-        if i%10 == 0:
+        if i%50 == 0:
             print("\nIteration no: ",i,"\n")
+            print("Relative residue:",rel_residue)
+            print("\nStatus:", status)
         
         i += 1
+
+        vort_o = vort_calc
+        strm_o = strm_calc
+        temp_o = temp_calc
 
     return(i,vort_calc,strm_calc,temp_calc,vort_residue,strm_residue,temp_residue,rel_residue)
 
@@ -90,6 +97,6 @@ output = prog()
 print('No. of Iterations: ',output[0])
 print('\nVorticity:\n',output[1],'\nStream_Function:\n',output[2],'\nTemperature:\n',output[3])
 print('\nVorticity Residue:\n',output[4])
-print('\nStream function Residue:\n',output[4])
-print('\nTemperature Residue:\n',output[5])
-print('\nRelative residue:\n',output[6])
+print('\nStream function Residue:\n',output[5])
+print('\nTemperature Residue:\n',output[6])
+print('\nRelative residue:\n',output[7])
