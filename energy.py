@@ -47,3 +47,15 @@ def energy_ur(temp_o,temp_calc,m,n,r):
         for j in range (1,n-1):
             temp_n[i][j] = temp_o[i][j] + r*(temp_calc[i][j] - temp_o[i][j])
     return(temp_n)
+
+
+def converge(temp_o,strm,m,n,dX,dY,div):
+    temp_residue = np.zeros((m,n))
+    for i in range(1,m-1):
+        for j in range (1,n-1):
+            temp_residue[i,j] = (( ( (-1/(4*dX*dY)) * \
+                ( (strm[i,j+1]-strm[i,j-1])*(temp_o[i+1,j]-temp_o[i-1,j])-\
+                    (strm[i,j+1]-strm[i,j-1])*(temp_o[i+1,j]-temp_o[i-1,j])))+\
+                        ((temp_o[i+1,j]+temp_o[i-1,j])/(dX*dX)) +\
+                            ((temp_o[i,j+1]+temp_o[i,j-1])/(dY*dY)))/(div)) -temp_o[i,j]
+    return np.std(temp_residue)

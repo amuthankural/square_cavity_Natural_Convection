@@ -52,3 +52,16 @@ def vort_ur(vort_o,vort_calc,m,n,r):
         for j in range (1,n-1):
             vort_n[i][j] = vort_o[i][j] + r*(vort_calc[i][j] - vort_o[i][j])
     return(vort_n)
+
+
+def converge(vort_o,strm,temp,m,n,dX,dY,div,Pr,Ra,phi):
+    vort_residue   = np.zeros((m,n))
+    for i in range(1,m-1):
+        for j in range (1,n-1):
+            vort_residue[i][j] = (( (-1/(4*dX*dY*Pr)) * ((strm[i][j+1]-strm[i][j-1])*(vort_o[i+1][j]-vort_o[i-1][j])\
+                -(strm[i+1][j]-strm[i-1][j])*(vort_o[i][j+1]-vort_o[i][j-1]) )\
+                    + ((vort_o[i+1][j]+vort_o[i-1][j])/(dX*dX))\
+                        + ((vort_o[i][j+1]+vort_o[i][j-1])/(dY*dY))\
+                            - Ra*( (temp[i+1][j]-temp[i-1][j])*(math.sin(phi)/(2*dX))\
+                                - (temp[i][j+1]-temp[i][j-1])*(math.cos(phi)/(2*dY)) ))/(div)) - vort_o[i][j]
+    return np.std(vort_residue)
