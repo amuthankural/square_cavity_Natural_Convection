@@ -5,14 +5,15 @@ import energy
 
 
 #Input Parameters
-m       = 10
-n       = 10
-dX      = 1/m
-dY      = 1/n
-Pr      = 1
-Ra      = 1000
-phi     = 90
-r       = 0.83
+m           = 10
+n           = 10
+dX          = 1/m
+dY          = 1/n
+Pr          = 1
+Ra          = 1000
+phi         = 90
+r           = 0.83
+convergence = 0.0001
 
 
 #Calculated Values
