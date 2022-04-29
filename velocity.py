@@ -1,7 +1,7 @@
-def stream_init(domain,m,n):
+def velocity_init(domain,m,n):
     pass
 
-def stream_bound(domain,m,n):
+def velocity_bound(domain,m,n):
     for j in range(n):
         domain[0][j]      = 41
         domain[m-1][j]    = 23
