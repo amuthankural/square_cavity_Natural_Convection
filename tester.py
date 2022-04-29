@@ -5,7 +5,6 @@ import numpy as np
 
 arr = np.zeros((2,4)).T
 
-print(arr)
 
 def tester(domain,m,n):
 

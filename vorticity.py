@@ -11,16 +11,6 @@ def vort_init(domain,m,n):
     return(domain)
 
 
-def vort_bound(vort,strm,m,n,dX,dY):
-    for i in range(m):
-        vort[i][0]      = (-2*strm[i][2])/(dY*dY)
-        vort[i][n-1]    = (-2*strm[i][n-2])/(dY*dY)
-    for j in range(n):
-        vort[0][j]      = (-2*strm[2][j])/(dX*dX)
-        vort[m-1][j]    = (-2*strm[m-2][j])/(dX*dX)
-        return vort
-
-
 def vort_bound_ur(vort_o,vort_calc,m,n,r):
     vort_n      = np.copy(vort_o)
     for i in range(m):
@@ -32,20 +22,26 @@ def vort_bound_ur(vort_o,vort_calc,m,n,r):
     return(vort_n)
 
 
-def vort(vort_o,strm,temp,m,n,dX,dY,div,Pr,Ra,phi,r):
+def vort_bound(vort,strm,m,n,dX,dY):
+    for i in range(m):
+        vort[i][0]      = (-2*strm[i][2])/(dY*dY)
+        vort[i][n-1]    = (-2*strm[i][n-2])/(dY*dY)
+    for j in range(n):
+        vort[0][j]      = (-2*strm[2][j])/(dX*dX)
+        vort[m-1][j]    = (-2*strm[m-2][j])/(dX*dX)
+        return vort
+
+
+def vort(vort_o,strm,temp,m,n,dX,dY,div,Pr,Ra,phi):
     vort_calc   = np.copy(vort_o)
     for i in range(1,m-1):
         for j in range (1,n-1):
             vort_calc[i][j] = ( (-1/(4*dX*dY*Pr)) * ((strm[i][j+1]-strm[i][j-1])*(vort_o[i+1][j]-vort_o[i-1][j])\
-                                                   - (strm[i+1][j]-strm[i-1][j])*(vort_o[i][j+1]-vort_o[i][j-1]) )\
-                                               
-                                                        + ((vort_o[i+1][j]+vort_o[i-1][j])/(dX*dX))  /
-                                                        + ((vort_o[i][j+1]+vort_o[i][j-1])/(dY*dY)) /
-
-                                                            - Ra*( (temp[i+1][j]-temp[i-1][j])*(math.sin(phi)/(2*dX)) \
-                                                                -  (temp[i][j+1]-temp[i][j-1])*(math.cos(phi)/(2*dY)) )\
-                                                
-                                )/(div) 
+                -(strm[i+1][j]-strm[i-1][j])*(vort_o[i][j+1]-vort_o[i][j-1]) )\
+                    + ((vort_o[i+1][j]+vort_o[i-1][j])/(dX*dX))\
+                        + ((vort_o[i][j+1]+vort_o[i][j-1])/(dY*dY))\
+                            - Ra*( (temp[i+1][j]-temp[i-1][j])*(math.sin(phi)/(2*dX))\
+                                - (temp[i][j+1]-temp[i][j-1])*(math.cos(phi)/(2*dY)) ))/(div) 
     return(vort_calc)
 
 

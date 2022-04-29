@@ -33,14 +33,11 @@ def energy(temp_o,strm,m,n,dX,dY,div):
     temp_calc = temp_o.copy()
     for i in range(1,m-1):
         for j in range (1,n-1):
-            temp_o[i,j] = (\
-                            ( (-1/(4*dX*dY)) * \
-                                ( (strm[i,j+1]-strm[i,j-1])*(temp_o[i+1,j]-temp_o[i-1,j])-\
-                                  (strm[i,j+1]-strm[i,j-1])*(temp_o[i+1,j]-temp_o[i-1,j]))\
-                            )+\
-                            ((temp_o[i+1,j]+temp_o[i-1,j])/(dX*dX)) +\
-                            ((temp_o[i,j+1]+temp_o[i,j-1])/(dY*dY))\
-                        )/(div)
+            temp_o[i,j] = ( ( (-1/(4*dX*dY)) * \
+                ( (strm[i,j+1]-strm[i,j-1])*(temp_o[i+1,j]-temp_o[i-1,j])-\
+                    (strm[i,j+1]-strm[i,j-1])*(temp_o[i+1,j]-temp_o[i-1,j])))+\
+                        ((temp_o[i+1,j]+temp_o[i-1,j])/(dX*dX)) +\
+                            ((temp_o[i,j+1]+temp_o[i,j-1])/(dY*dY)))/(div)
     return temp_calc
 
 
