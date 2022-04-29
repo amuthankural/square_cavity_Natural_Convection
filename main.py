@@ -41,19 +41,10 @@ div         = ((2/(dX*dX))+(2/(dY*dY)))
 
 #vort = vorticity.vort(vort,strm,temp,m,n,dX,dY,div,Pr,Ra,phi,r)
 
-#test = tester.tester(test,m,n)
+
 temp = energy.energy_init(temp,m,n,dX)
 print(temp)
 
 temp = energy.energy_bound(temp,m,n)
 print(temp)
 
-
-"""
-print(u_vel)
-print(v_vel)
-print(strm)
-print(temp)
-print(vort)
-
-"""
