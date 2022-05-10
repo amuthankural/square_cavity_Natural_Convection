@@ -1,5 +1,20 @@
 import numpy as np
 import math
+import logging
+from pathlib import Path
+
+#Output folder setup
+output = Path('./output/log').expanduser()
+output.mkdir(parents=True, exist_ok=True)
+
+
+en_log = logging.getLogger(__name__)
+en_log.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+file_handler = logging.FileHandler('./output/log/vorticity.log',mode='w')
+
+file_handler.setFormatter(formatter)
+en_log.addHandler(file_handler)
 
 def vort_init(domain,m,n):
     for j in range(n):
@@ -11,8 +26,22 @@ def vort_init(domain,m,n):
     return(domain)
 
 
+def vort_bound(vort,strm,m,n,dX,dY,iter):
+    en_log.debug("Iteration No.: {}".format(iter))
+    en_log.debug("Vorticity at recalculation entry: \n{}".format(vort))
+    for i in range(m):
+        vort[i][0]      = (-2*strm[i][2])/(dY*dY)
+        vort[i][n-1]    = (-2*strm[i][n-2])/(dY*dY)
+    for j in range(n):
+        vort[0][j]      = (-2*strm[2][j])/(dX*dX)
+        vort[m-1][j]    = (-2*strm[m-2][j])/(dX*dX)
+    en_log.debug("Vorticity at recalculation exit: \n{}".format(vort))
+    en_log.debug("____________________________________________________")
+    return vort
+
+
 def vort_bound_ur(vort_o,vort_calc,m,n,r):
-    vort_n      = np.copy(vort_o)
+    vort_n      = np.copy(vort_calc)
     for i in range(m):
         vort_n[i][0]      = vort_o[i][0] + r*(vort_calc[i][0] - vort_o[i][0])
         vort_n[i][n-1]    = vort_o[i][n-1] + r*(vort_calc[i][n-1] - vort_o[i][n-1])
@@ -22,32 +51,27 @@ def vort_bound_ur(vort_o,vort_calc,m,n,r):
     return(vort_n)
 
 
-def vort_bound(vort,strm,m,n,dX,dY):
-    for i in range(m):
-        vort[i][0]      = (-2*strm[i][2])/(dY*dY)
-        vort[i][n-1]    = (-2*strm[i][n-2])/(dY*dY)
-    for j in range(n):
-        vort[0][j]      = (-2*strm[2][j])/(dX*dX)
-        vort[m-1][j]    = (-2*strm[m-2][j])/(dX*dX)
-        return vort
-
-
 def vort(vort_o,strm,temp,m,n,dX,dY,div,Pr,Ra,phi):
     vort_calc   = np.copy(vort_o)
+    mul         = (-1/(4*dX*dY*Pr))
+
     for i in range(1,m-1):
-        for j in range (1,n-1):
-            vort_calc[i][j] = ( (-1/(4*dX*dY*Pr)) * ((strm[i][j+1]-strm[i][j-1])*(vort_o[i+1][j]-vort_o[i-1][j])\
-                -(strm[i+1][j]-strm[i-1][j])*(vort_o[i][j+1]-vort_o[i][j-1]) )\
-                    + ((vort_o[i+1][j]+vort_o[i-1][j])/(dX*dX))\
-                        + ((vort_o[i][j+1]+vort_o[i][j-1])/(dY*dY))\
-                            - Ra*( (temp[i+1][j]-temp[i-1][j])*(math.sin(phi)/(2*dX))\
-                                - (temp[i][j+1]-temp[i][j-1])*(math.cos(phi)/(2*dY)) ))/(div) 
+        for j in range(1,n-1):
+            strm_i_diff = (strm[i+1,j]-strm[i-1,j])
+            strm_j_diff = (strm[i,j+1]-strm[i,j-1])
+            temp_i_diff = ((temp[i+1,j]-temp[i-1,j])*math.sin(phi))/(2*dX)
+            temp_j_diff = ((temp[i,j+1]-temp[i,j-1])*math.cos(phi))/(2*dY)
+            vort_i_diff = (vort_o[i+1,j]-vort_o[i-1,j])
+            vort_j_diff = (vort_o[i,j+1]-vort_o[i,j-1])
+            vort_i_sum  = (vort_o[i+1,j]+vort_o[i-1,j])/(dX*dX)
+            vort_j_sum  = (vort_o[i,j+1]+vort_o[i,j-1])/(dY*dY)
+            vort_calc[i,j] = (( (mul*((strm_j_diff*vort_i_diff)-(strm_i_diff*vort_j_diff))) + vort_i_sum + vort_j_sum + Ra*(temp_i_diff - temp_j_diff) )/(div))
     return(vort_calc)
 
 
 
 def vort_ur(vort_o,vort_calc,m,n,r):
-    vort_n      = np.copy(vort_o)
+    vort_n      = np.copy(vort_calc)
     for i in range(1,m-1):
         for j in range (1,n-1):
             vort_n[i][j] = vort_o[i][j] + r*(vort_calc[i][j] - vort_o[i][j])
@@ -56,12 +80,17 @@ def vort_ur(vort_o,vort_calc,m,n,r):
 
 def converge(vort_o,strm,temp,m,n,dX,dY,div,Pr,Ra,phi):
     vort_residue   = np.zeros((m,n))
+    mul         = (-1/(4*dX*dY*Pr))
     for i in range(1,m-1):
         for j in range (1,n-1):
-            vort_residue[i][j] = (( (-1/(4*dX*dY*Pr)) * ((strm[i][j+1]-strm[i][j-1])*(vort_o[i+1][j]-vort_o[i-1][j])\
-                -(strm[i+1][j]-strm[i-1][j])*(vort_o[i][j+1]-vort_o[i][j-1]) )\
-                    + ((vort_o[i+1][j]+vort_o[i-1][j])/(dX*dX))\
-                        + ((vort_o[i][j+1]+vort_o[i][j-1])/(dY*dY))\
-                            - Ra*( (temp[i+1][j]-temp[i-1][j])*(math.sin(phi)/(2*dX))\
-                                - (temp[i][j+1]-temp[i][j-1])*(math.cos(phi)/(2*dY)) ))/(div)) - vort_o[i][j]
+            strm_i_diff = (strm[i+1,j]-strm[i-1,j])
+            strm_j_diff = (strm[i,j+1]-strm[i,j-1])
+            temp_i_diff = ((temp[i+1,j]-temp[i-1,j])*math.sin(phi))/(2*dX)
+            temp_j_diff = ((temp[i,j+1]-temp[i,j-1])*math.cos(phi))/(2*dY)
+            vort_i_diff = (vort_o[i+1,j]-vort_o[i-1,j])
+            vort_j_diff = (vort_o[i,j+1]-vort_o[i,j-1])
+            vort_i_sum  = (vort_o[i+1,j]+vort_o[i-1,j])/(dX*dX)
+            vort_j_sum  = (vort_o[i,j+1]+vort_o[i,j-1])/(dY*dY)
+            vort_residue[i,j] = (( (mul*((strm_j_diff*vort_i_diff)-(strm_i_diff*vort_j_diff))) + vort_i_sum + vort_j_sum + Ra*(temp_i_diff - temp_j_diff) )/(div))\
+                - vort_o[i,j]
     return np.std(vort_residue)

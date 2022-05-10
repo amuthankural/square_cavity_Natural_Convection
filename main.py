@@ -1,98 +1,207 @@
+import sys
+import logging
+import json
 import numpy as np
+from pathlib import Path
+
+
 import stream
 import vorticity
 import energy
+import plotter
 
 
-#Input Parameters
-m           = 50
-n           = 50
-dX          = 1/m
-dY          = 1/n
-Pr          = 1
-Ra          = 1000
-phi         = 90
-r           = 0.83
-convergence = 0.0001
+np.set_printoptions(precision=2)
+np.set_printoptions(threshold=sys.maxsize)
 
 
-#Calculated Values
-div         = ((2/(dX*dX))+(2/(dY*dY)))
+#Output folder setup
+data = Path('./output/data').expanduser()
+data.mkdir(parents=True, exist_ok=True)
+img = Path('./output/img').expanduser()
+img.mkdir(parents=True, exist_ok=True)
 
 
+#File logger setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+file_handler = logging.FileHandler('./output/Natural_convection.log',mode='w')
+file_handler.setFormatter(formatter)    
+logger.addHandler(file_handler)
+
+
+#Domain discretization function
 def discretize(m,n):
     return(np.zeros((m,n)))
 
 
 def prog():
-    i = 1
+    with open('./input.json','r') as f:
+        input           = json.load(f)
+
+
+    #'While' loop flags
+    i           = 1                 #Iteration number
+    status      = False             #Convergence status
+
+
+    #Input Parameters
+    m           = input["m"]
+    n           = input["n"]
+    Pr          = input["Pr"]
+    Ra          = input["Ra"]
+    phi         = input["phi"]
+    r           = input["r"]
+    convergence = input["convergence"]
+    N           = input["resolution"]
+
+
+    print("Data imported")
+    logger.info('Data imported from JSON file\n---------------------------------------------------------------------')
+    logger.info('\nDomain data:\nX_Div:\t\t{}\nY_Div:\t\t{}\nPrandtl:\t{}\nRaleigh:\t{}\nAngle:\t\t{}\nRelaxation:\t{}\nConvergence:\t{}\n'\
+        .format(m,n,Pr,Ra,phi,r,convergence))
+    logger.info('\n---------------------------------------------------------------------')
+
+
+    #Calculated Values
+    dX          = 1/m
+    dY          = 1/n
+    div         = ((2/(dX*dX))+(2/(dY*dY)))
+
+
+    #Domain definition
     vort_o      = discretize(m,n)
     strm_o      = discretize(m,n)
     temp_o      = discretize(m,n)
     vort_calc   = discretize(m,n)
     strm_calc   = discretize(m,n)
     temp_calc   = discretize(m,n)
-    status      = False
 
+
+    #Residue definition
     residue      = []
     vort_residue = []
     strm_residue = []
     temp_residue = []
+
+
+    #Domain initial condition
     vort_o      = vorticity.vort_init(vort_o,m,n)
     strm_o      = stream.strm_init(strm_o,m,n)
     temp_o      = energy.energy_init(temp_o,m,n,dX)
+    logger.debug('Vorticity - Initial Domain: \n{}'.format(vort_o))
+    logger.debug('Stream function - Initial Domain: \n{}'.format(strm_o))
+    logger.debug('Temperature - Initial Domain: \n{}'.format(temp_o))
 
+
+    #FDM main loop
     while (status != True):
+        logger.debug("\n\n__________________________________________________________________________________________")
+        logger.debug("\nIteration no: \t{}".format(i))
 
 
-        vort_o      = vorticity.vort_bound(vort_o,strm_o,m,n,dX,dY)
+        #Applying boundary conditions:
+        vort_o      = vorticity.vort_bound(vort_o,strm_o,m,n,dX,dY,i)
+        logger.debug('Vorticity - First Bounded Domain: \n{}'.format(vort_o))
         strm_o      = stream.strm_init(strm_o,m,n)
-        temp_o      = energy.energy_bound(temp_o,m,n)
+        logger.debug('Stream function - First Bounded Domain: \n{}'.format(strm_o))
+        temp_o      = energy.energy_bound(temp_o,m,n,i)
+        logger.debug('Temperature - First Bounded Domain: \n{}'.format(temp_o))
 
 
+        #Vorticity domain is calculated with under relaxation:
         vort_calc   = vorticity.vort(vort_o,strm_o,temp_o,m,n,dX,dY,div,Pr,Ra,phi)
+        logger.debug('Vorticity - Calculated Domain: \n{}'.format(vort_calc))
         vort_calc   = vorticity.vort_ur(vort_o,vort_calc,m,n,r)
+        logger.debug('Vorticity - Calculated UR Domain: \n{}'.format(vort_calc))
 
-        strm_calc   = stream.strm(strm_o,vort_calc,m,n,dX,dY,div)
+
+        #Stream function domain is calculated with under relaxation:
+        strm_calc   = stream.strm(strm_o,vort_calc,m,n,dX,dY,div,i)
+        logger.debug('Stream function - Calculated Domain: \n{}'.format(strm_o))
         strm_calc   = stream.strm_ur(strm_o,strm_calc,m,n,r)
+        logger.debug('Stream function - Calculated UR Domain: \n{}'.format(strm_o))
 
-        vort_calc   = vorticity.vort_bound(vort_calc,strm_calc,m,n,dX,dY)
+
+        #Vorticity boundary condition is calculated for new stream function with under relaxation:
+        vort_calc   = vorticity.vort_bound(vort_calc,strm_calc,m,n,dX,dY,i)
+        logger.debug('Vorticity - Second Bounded Domain: \n{}'.format(vort_o))
         vort_calc   = vorticity.vort_ur(vort_o,vort_calc,m,n,r)
-
-        temp_calc   = energy.energy(temp_o,strm_calc,m,n,dX,dY,div)
-        temp_calc   = energy.energy_ur(temp_o,temp_calc,m,n,r)
+        logger.debug('Vorticity - Second Bounded UR Domain: \n{}'.format(vort_o))
 
 
-        temp_calc   = energy.energy_bound(temp_calc,m,n)
-        temp_calc   = energy.energy_bound_ur(temp_o,temp_calc,m,n,r)
+        #Temperature domain is calculated with under relaxation:
+        temp_calc   = energy.energy(temp_o,strm_calc,m,n,dX,dY,div,i)
+        logger.debug('Temperature - Calculated Domain: \n{}'.format(temp_o))
+        temp_calc   = energy.energy_ur(temp_o,temp_calc,m,n,r,i)
+        logger.debug('Temperature - Calculated UR Domain: \n{}'.format(temp_o))
 
 
+        #Temperature boundary condition is applied with under relaxation:
+        temp_calc   = energy.energy_bound(temp_calc,m,n,i)
+        logger.debug('Temperature - Second Bounded Domain: \n{}'.format(temp_o))
+        temp_calc   = energy.energy_bound_ur(temp_o,temp_calc,m,n,r,i)
+        logger.debug('Temperature - Second Bounded UR Domain: \n{}'.format(temp_o))
+
+
+        #Residuals for Vorticity, Stream function & Temperature are calculated
         vort_residue.append(vorticity.converge(vort_calc,strm_calc,temp_calc,m,n,dX,dY,div,Pr,Ra,phi))
         residue.append(vort_residue)
         strm_residue.append(stream.converge(strm_calc,vort_calc,m,n,dX,dY,div))
         residue.append(strm_residue)
         temp_residue.append(energy.converge(temp_calc,strm_calc,m,n,dX,dY,div))
         residue.append(temp_residue)
+
+
+        #Relative residue and max among the above three are calculated:
         rel_residue = np.std([vort_residue[-1],strm_residue[-1],temp_residue[-1]])
-        print(vort_residue[-1])
-        print(strm_residue[-1])
-        print(temp_residue[-1])
         max_residue = max([vort_residue[-1],strm_residue[-1],temp_residue[-1]])
 
-        if  max_residue <= convergence or rel_residue <= convergence:
+
+        #Check for logging data:
+        if i%100 == 0:
+            logger.info("\nIteration no: \t\t\t{}".format(i))
+            logger.info('Vorticity residual: \t\t{}'.format(vort_residue[-1]))
+            logger.info('Stream function residual: \t{}'.format(strm_residue[-1]))
+            logger.info('Temperature residual: \t\t{}'.format(temp_residue[-1]))
+            logger.debug("Relative residue: \t\t{}".format(rel_residue))
+            logger.debug("Max residue: \t\t\t{}".format(max_residue))
+            logger.info("Status: \t\t\t{}".format(status))
+            print("Iteration no.:\t{}".format(i))
+        
+
+        #COnvergence condition check:
+        if  max_residue <= convergence or rel_residue <= convergence or i > 10000:
             status = True
 
-        if i%2 == 0:
-            print("\nIteration no: ",i,"\n")
-            print("Relative residue: ",rel_residue)
-            print("Max residue: ",max_residue)
-            print("\nStatus:", status)
-        
-        i += 1
 
-        vort_o = vort_calc
-        strm_o = strm_calc
-        temp_o = temp_calc
+        vort_o  = vort_calc
+        strm_o  = strm_calc
+        temp_o  = temp_calc
+        i      += 1
+
+    #Numpy matrix is transposed to obtain correctly alligned output data
+    vort_calc = vort_calc.T
+    strm_calc = strm_calc.T
+    temp_calc = temp_calc.T
+
+
+    #Domain files are saved as numpy dataframes:    
+    np.save(data/'Vorticity.npy',vort_calc)
+    np.save(data/'StreamFunction.npy',strm_calc)
+    np.save(data/'Temperature.npy',temp_calc)
+    logger.info('Data saved\n---------------------------------------------------------------------')
+    print("Data saved")
+
+
+    #Plotting the domain data into a contour plot:
+    plotter.plotter(N,strm_calc,m,n,"Contour of Stream function")
+    plotter.plotter(N,vort_calc,m,n,"Contour of Vorticity")
+    plotter.plotter(N,temp_calc,m,n,"Contour of Temperature")
+    logger.info('Images saved\n---------------------------------------------------------------------')
+    print("Images saved")
+    print("Log file is saved as Natural_convection.log")
 
     return(i,vort_calc,strm_calc,temp_calc,vort_residue,strm_residue,temp_residue,rel_residue)
 
@@ -100,9 +209,13 @@ def prog():
 output = prog()
 
 
-print('\nVorticity:\n',output[1],'\nStream_Function:\n',output[2],'\nTemperature:\n',output[3])
-"""print('\nVorticity Residue:\n',output[4])
-print('\nStream function Residue:\n',output[5])
-print('\nTemperature Residue:\n',output[6])"""
+#Logging of final values for domains and residuals
+logger.info('No. of Iterations: \t\t\t{}'.format(output[0]))
+logger.info('\nRelative residue: \t\t\t{}'.format(output[7]))
+logger.info('\nStream function Residue: \t\t{}'.format(output[5]))
+logger.info('\nVorticity Residue: \t\t\t{}'.format(output[4]))
+logger.info('\nTemperature Residue: \t\t\t{}'.format(output[6]))
+logger.info('\nVorticity: \n{}\nStream_Function:\n{}\nTemperature:\n{}'.format(output[1],output[2],output[3]))
 print('No. of Iterations: ',output[0])
 print('\nRelative residue:\n',output[7])
+print('\nVorticity:\n',output[1],'\nStream_Function:\n',output[2],'\nTemperature:\n',output[3])
