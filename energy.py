@@ -58,12 +58,12 @@ def energy(temp_o,strm,m,n,dX,dY,div,iter):
     mul         = (-1/(4*dX*dY))
     for i in range(1,m-1):
         for j in range (1,n-1):          
-            strm_i_diff = (strm[i,j+1]-strm[i,j-1])
+            strm_i_diff = (strm[i+1,j]-strm[i-1,j])
             strm_j_diff = (strm[i,j+1]-strm[i,j-1])
             temp_i_diff = (temp_o[i+1,j]-temp_o[i-1,j])
             temp_j_diff = (temp_o[i,j+1]-temp_o[i,j-1])
-            temp_i_sum = (temp_o[i+1,j]+temp_o[i-1,j])
-            temp_j_sum = (temp_o[i,j+1]+temp_o[i,j-1])
+            temp_i_sum = (temp_o[i+1,j]+temp_o[i-1,j])/(dX*dX)
+            temp_j_sum = (temp_o[i,j+1]+temp_o[i,j-1])/(dY*dY)
             temp_calc[i,j] = ( ( (mul*((strm_j_diff*temp_i_diff)-(strm_i_diff*temp_j_diff))) + temp_i_sum + temp_j_sum )/div )
 
     en_log.debug("Temperature at calculation exit: \n{}".format(temp_calc))
