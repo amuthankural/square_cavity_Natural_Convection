@@ -213,7 +213,7 @@ def prog():
     temp_plot = temp_calc.T
     nslt_plot = nslt.T
     u_vel_plot= u_vel.T
-    v_vel_plot= v_vel.T
+    v_vel_plot= -(v_vel.T)
 
 
 
