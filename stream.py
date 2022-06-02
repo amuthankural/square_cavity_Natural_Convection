@@ -49,11 +49,16 @@ def strm_ur(strm_o,strm_calc,m,n,r):
     return(strm_n)
 
 
-def converge(strm_o,vort,m,n,dX,dY,div):
-    strm_residue   = np.zeros((m,n))
+def converge(strm_o,vort,m,n,dX,dY,div,iter):
+    strm_residue    = np.zeros((m,n))
+    strm_max        = int(np.amax(np.abs(strm_o)))
+    if strm_max     == 0:
+        strm_max    = 1
+    strm_log.debug("Iteration level:{}\nStream function max value: \n{}".format(iter,strm_max))
     for i in range(1,m-1):
         for j in range(1,n-1):
             strm_i_sum  = (strm_o[i+1,j]+strm_o[i-1,j])/(dX*dX)
             strm_j_sum  = (strm_o[i,j+1]+strm_o[i,j-1])/(dY*dY)            
-            strm_residue[i][j]   = (( strm_i_sum + strm_j_sum + vort[i,j] ) / (div)) - strm_o[i][j]
+            strm_residue[i][j]   = ((( strm_i_sum + strm_j_sum + vort[i,j] ) / (div)) - strm_o[i][j])/strm_max
+    strm_log.debug("Stream function residue domain: \n{}".format(strm_residue))
     return np.std(strm_residue)

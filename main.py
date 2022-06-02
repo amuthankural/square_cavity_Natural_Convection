@@ -26,7 +26,7 @@ img.mkdir(parents=True, exist_ok=True)
 
 #File logger setup
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 file_handler = logging.FileHandler('./output/Natural_convection.log',mode='w')
 file_handler.setFormatter(formatter)    
@@ -163,11 +163,11 @@ def prog():
 
 
         #Residuals for Vorticity, Stream function & Temperature are calculated
-        vort_residue.append(vorticity.converge(vort_calc,strm_calc,temp_calc,m,n,dX,dY,div,Pr,Ra,phi))
+        vort_residue.append(vorticity.converge(vort_calc,strm_calc,temp_calc,m,n,dX,dY,div,Pr,Ra,phi,i))
         residue.append(vort_residue)
-        strm_residue.append(stream.converge(strm_calc,vort_calc,m,n,dX,dY,div))
+        strm_residue.append(stream.converge(strm_calc,vort_calc,m,n,dX,dY,div,i))
         residue.append(strm_residue)
-        temp_residue.append(energy.converge(temp_calc,strm_calc,m,n,dX,dY,div))
+        temp_residue.append(energy.converge(temp_calc,strm_calc,m,n,dX,dY,div,i))
         residue.append(temp_residue)
 
 
@@ -177,7 +177,7 @@ def prog():
 
 
         #Check for logging data:
-        if i%100 == 0:
+        if i%10 == 0:
             logger.info("\nIteration no: \t\t\t{}".format(i))
             logger.info('Vorticity residual: \t\t{}'.format(vort_residue[-1]))
             logger.info('Stream function residual: \t{}'.format(strm_residue[-1]))
@@ -189,7 +189,7 @@ def prog():
         
 
         #COnvergence condition check:
-        if  max_residue <= convergence or rel_residue <= convergence or i > 25000:
+        if  max_residue <= convergence or rel_residue <= convergence or i > 1000:
             status = True
 
 

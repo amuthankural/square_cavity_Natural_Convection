@@ -29,8 +29,8 @@ def energy_bound(temp,m,n,iter):
         temp[0,j]      = 1
         temp[m-1,j]    = 0
     for i in range(m):
-        temp[i,0]      = (4/3)*( temp[i,2]- (temp[i, 3]/4) )
-        temp[i,n-1]    = (4/3)*( temp[i,j-1] - (temp[i, j-2]/4) )
+        temp[i,0]      = (4/3)*( temp[i,1]- (temp[i, 2]/4) )
+        temp[i,n-1]    = (4/3)*( temp[i,n-2] - (temp[i, n-3]/4) )
     en_log.debug("Temperature at boundary calculation exit: \n{}".format(temp))
     en_log.debug("____________________________________________________")
     return(temp)
@@ -62,9 +62,9 @@ def energy(temp_o,strm,m,n,dX,dY,div,iter):
             strm_j_diff = (strm[i,j+1]-strm[i,j-1])
             temp_i_diff = (temp_o[i+1,j]-temp_o[i-1,j])
             temp_j_diff = (temp_o[i,j+1]-temp_o[i,j-1])
-            temp_i_sum = (temp_o[i+1,j]+temp_o[i-1,j])/(dX*dX)
-            temp_j_sum = (temp_o[i,j+1]+temp_o[i,j-1])/(dY*dY)
-            temp_calc[i,j] = ( ( (mul*((strm_j_diff*temp_i_diff)-(strm_i_diff*temp_j_diff))) + temp_i_sum + temp_j_sum )/div )
+            temp_i_sum  = (temp_o[i+1,j]+temp_o[i-1,j])/(dX*dX)
+            temp_j_sum  = (temp_o[i,j+1]+temp_o[i,j-1])/(dY*dY)
+            temp_calc[i,j] =  ( (mul*((strm_j_diff*temp_i_diff)-(strm_i_diff*temp_j_diff))) + temp_i_sum + temp_j_sum )/div
 
     en_log.debug("Temperature at calculation exit: \n{}".format(temp_calc))
     en_log.debug("____________________________________________________")
@@ -83,16 +83,22 @@ def energy_ur(temp_o,temp_calc,m,n,r,iter):
     return(temp_n)
 
 
-def converge(temp_o,strm,m,n,dX,dY,div):
+def converge(temp_o,strm,m,n,dX,dY,div,iter):
     temp_residue = np.zeros((m,n))
     mul         = (-1/(4*dX*dY))
+    if iter<5:
+        temp_max = 1
+    else:
+        temp_max    = int(np.amax(np.abs(temp_o)))
+    en_log.debug("Temperature max value: \n{}".format(temp_max))
     for i in range(1,m-1):
         for j in range (1,n-1):         
             strm_i_diff = (strm[i+1,j]-strm[i-1,j])
             strm_j_diff = (strm[i,j+1]-strm[i,j-1])
             temp_i_diff = (temp_o[i+1,j]-temp_o[i-1,j])
             temp_j_diff = (temp_o[i,j+1]-temp_o[i,j-1])
-            temp_i_sum = (temp_o[i+1,j]+temp_o[i-1,j])/(dX*dX)
-            temp_j_sum = (temp_o[i,j+1]+temp_o[i,j-1])/(dY*dY)
-            temp_residue[i,j] = ( ( (mul*((strm_j_diff*temp_i_diff)-(strm_i_diff*temp_j_diff))) + temp_i_sum + temp_j_sum )/div )- temp_o[i,j]
+            temp_i_sum  = (temp_o[i+1,j]+temp_o[i-1,j])/(dX*dX)
+            temp_j_sum  = (temp_o[i,j+1]+temp_o[i,j-1])/(dY*dY)
+            temp_residue[i,j] = (( ( (mul*((strm_j_diff*temp_i_diff)-(strm_i_diff*temp_j_diff))) + temp_i_sum + temp_j_sum )/div )- temp_o[i,j])/temp_max
+    en_log.debug("Temperature residue domain: \n{}".format(temp_residue))
     return np.std(temp_residue)
