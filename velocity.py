@@ -22,5 +22,5 @@ def u_velocity(strm,u,dY,m,n):
 def v_velocity(strm,v,dX,m,n):    
     for i in range(1,m-1):
         for j in range(1,n-1):
-            v[i][j] = (strm[i+1][j]-strm[i-1][j])/(2*dX)
+            v[i][j] = -(strm[i+1][j]-strm[i-1][j])/(2*dX)
     return v
