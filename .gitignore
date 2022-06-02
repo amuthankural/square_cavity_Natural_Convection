@@ -1,0 +1,5 @@
+output/
+*(copy).py
+__pycache__/
+*.zip
+*.docx
