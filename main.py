@@ -54,7 +54,7 @@ def prog():
     m           = input["m"]            # Divisions in X - axis
     n           = input["n"]            # Divisions in Y - axis
     Pr          = input["Pr"]           # Prandtl number
-    Ra          = input["Ra"]           # Raleigh number
+    Ra          = input["Ra"]           # Rayleigh number
     phi         = input["phi"]          # Angle of orientation
     r           = input["r"]            # Relaxation factor for inner nodes
     rb          = input["rb"]           # Relaxation factor for boundary nodes
@@ -64,7 +64,7 @@ def prog():
 
     print("Data imported")
     logger.info('Data imported from JSON file\n---------------------------------------------------------------------')
-    logger.info('\nDomain data:\nX_Div:\t\t{}\nY_Div:\t\t{}\nPrandtl:\t{}\nRaleigh:\t{}\nAngle:\t\t{}\nRelaxation:\t{}\nConvergence:\t{}\n'\
+    logger.info('\nDomain data:\nX_Div:\t\t{}\nY_Div:\t\t{}\nPrandtl:\t{}\nRayleigh:\t{}\nAngle:\t\t{}\nRelaxation:\t{}\nConvergence:\t{}\n'\
         .format(m,n,Pr,Ra,phi,r,convergence))
     logger.info('\n---------------------------------------------------------------------')
 
